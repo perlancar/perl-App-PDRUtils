@@ -48,6 +48,36 @@ A few things that you can do with the utilities:
 
 =over
 
+=item * List distributions based on various criteria (L<pdrutil-list>)
+
+List the names of all distributions:
+
+ % pdrutil-list
+
+List the names as well as other details of all distributions:
+
+ % pdrutil-list -l
+
+List distributions that have unclean git status (needs to be committed, etc):
+
+ % pdrutil-list --no-git-clean
+
+List distributions that specify prereq to a certain module:
+
+ % pdrutil-list --depends Foo::Bar
+ % pdrutil-list --depends 'Foo::Bar >= 0.12'
+ % pdrutil-list --depends 'Foo::Bar = 0.12'
+ % pdrutil-list --depends 'Foo::Bar < 0.12'
+
+List distributions that depend on certain prereq in a certain phase/relationship
+only:
+
+ % pdrutil-list --depends 'Test::More < 0.98' --phase test
+
+List distributions that does I<not> depend on a certain module:
+
+ % pdrutil-list --depends-not Baz
+
 =item * Modify prereqs (L<pdrutil-modify-prereq>)
 
 For example, you want to increase the minimum prereq version for all your
@@ -64,6 +94,10 @@ Some other examples:
  % pdrutil-modify-prereq delete Some::Module ;# delete prereq
  % pdrutil-modify-prereq add Some::Module
  % pdrutil-modify-prereq add Some::Module 0.12
+
+=item * Increase or decrease version
+
+TBD
 
 =back
 
