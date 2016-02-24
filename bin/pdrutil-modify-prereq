@@ -1,0 +1,33 @@
+#!perl
+
+# DATE
+# VERSION
+
+use 5.010;
+use strict;
+use warnings;
+
+use App::PDRUtils;
+use Perinci::CmdLine::Any;
+
+our %SPEC;
+$SPEC{app} = {
+    v => 1.1,
+    summary => 'Modify prereq',
+    args => {
+    },
+};
+sub app {
+    [501, "Not yet implemented"];
+}
+
+Perinci::CmdLine::Any->new(
+    url => '/main/app',
+    %App::PDRUtils::Common_CLI_Attrs,
+)->run;
+
+1;
+# ABSTRACT:
+# PODNAME:
+
+=cut
