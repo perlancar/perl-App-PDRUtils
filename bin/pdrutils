@@ -3,9 +3,12 @@
 # DATE
 # VERSION
 
+BEGIN { $ENV{VERBOSE} //= 1 }
+
 use 5.010;
 use strict;
 use warnings;
+require Log::Any unless $ENV{COMP_LINE};
 
 use App::PDRUtils;
 use Perinci::CmdLine::Any;

@@ -175,6 +175,7 @@ sub _set_prereq_version {
                                 "dist.ini", $iod->as_string);
                         };
                         return [500, "Can't write dist.ini: $@"] if $@;
+                        $log->infof("Modified dist.ini for repo '%s'", $cbargs{repo});
                         return [200, "Modified"];
                     }
                 } else {
