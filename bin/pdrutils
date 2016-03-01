@@ -1,0 +1,31 @@
+#!perl
+
+# DATE
+# VERSION
+
+use 5.010;
+use strict;
+use warnings;
+
+use App::PDRUtils;
+use Perinci::CmdLine::Any;
+
+my $prefix = '/App/PDRUtils/';
+Perinci::CmdLine::Any->new(
+    %App::PDRUtils::Common_CLI_Attrs,
+    url => $prefix,
+    summary => 'Collection of utilities for perl dist repos',
+    subcommands => {
+        'inc-prereq-version-to' => {url => "${prefix}inc_prereq_version_to"},
+        'dec-prereq-version-to' => {url => "${prefix}dec_prereq_version_to"},
+        'inc-prereq-version-by' => {url => "${prefix}inc_prereq_version_by"},
+        'dec-prereq-version-by' => {url => "${prefix}dec_prereq_version_by"},
+        'set-prereq-version'    => {url => "${prefix}set_prereq_version"},
+    },
+)->run;
+
+1;
+# ABSTRACT:
+# PODNAME:
+
+=cut
