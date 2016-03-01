@@ -20,8 +20,9 @@ Perinci::CmdLine::Any->new(
         'dec-prereq-version-to' => {url => "${prefix}dec_prereq_version_to"},
         'inc-prereq-version-by' => {url => "${prefix}inc_prereq_version_by"},
         'dec-prereq-version-by' => {url => "${prefix}dec_prereq_version_by"},
-        'set-prereq-version'    => {url => "${prefix}set_prereq_version"},
+        'set-prereq-version-to' => {url => "${prefix}set_prereq_version_to"},
     },
+    log => 1,
 )->run;
 
 1;
