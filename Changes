@@ -1,5 +1,6 @@
 Revision history for App-PDRUtils
 
-0.10    2016-03-01 (PERLANCAR) (unreleased)
+0.01    2016-03-02 (PERLANCAR)
 
-        - First release.
+        - First, early release. Only these subcommands have been implemented:
+          {inc,dec,set}-prereq-version-to.
