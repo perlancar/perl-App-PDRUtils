@@ -43,6 +43,14 @@ our %mod_ver_args = (
     },
 );
 
+our %opt_mod_ver_args = (
+    module_version => {
+        schema => ['str*', match=>qr/\Av?\d{1,3}(\.\d{1,3}){0,2}\z/], # XXX perlmod_ver?
+        default => "0",
+        pos => 1,
+    },
+);
+
 our %by_ver_args = (
     by => {
         schema => ['str*', match=>qr/\Av?\d{1,3}(\.\d{1,3}){0,2}\z/],
@@ -126,6 +134,155 @@ sub _for_each_repo {
         $envres->add_result(@$res, {item_id=>$repo});
     }
     $envres->as_struct;
+}
+
+sub _has_prereq {
+    my ($iod, $mod) = @_;
+    for my $section ($iod->list_sections) {
+        # like in lint-prereqs
+        $section =~ m!\A(
+                          osprereqs \s*/\s* .+ |
+                          osprereqs(::\w+)+ |
+                          prereqs (?: \s*/\s* (?<prereqs_phase_rel>\w+))? |
+                          extras \s*/\s* lint[_-]prereqs \s*/\s* (assume-(?:provided|used))
+                      )\z!ix or next;
+        for my $param ($iod->list_keys($section)) {
+            return 1 if $param eq $mod;
+        }
+    }
+    0;
+}
+
+$SPEC{add_prereq} = {
+    v => 1.1,
+    summary => 'Add a prereq',
+    args => {
+        %common_args,
+        %mod_args,
+        %opt_mod_ver_args,
+        phase => {
+            summary => 'Select prereq phase',
+            schema => ['str*', in=>[qw/build configure develop runtime test/]],
+            default => 'runtime',
+        },
+        rel => {
+            summary => 'Select prereq relationship',
+            schema => ['str*', in=>[qw/requires suggests recommends/]],
+            default => 'requires',
+        },
+        # TODO: replace option
+    },
+    features => {dry_run=>1},
+};
+sub add_prereq {
+    my %fargs = @_;
+
+    _for_each_repo(
+        {requires_parsed_dist_ini=>1},
+        \%fargs,
+        sub {
+            my %cbargs = @_;
+            my $pargs = $cbargs{parent_args};
+            my $iod   = $cbargs{parsed_dist_ini};
+            my $mod   = $pargs->{module};
+            my $ver   = $pargs->{module_version} // 0;
+            my $phase = $pargs->{phase};
+            my $rel   = $pargs->{rel};
+            if (_has_prereq($iod, $mod)) {
+                return [304, "Already has prereq to '$mod'"];
+            }
+
+            my $section;
+            for my $s ($iod->list_sections) {
+                next unless $s =~ m!\Aprereqs(?:\s*/\s*(\w+))?\z!;
+                if ($phase eq 'runtime' && $rel eq 'requires') {
+                    next unless !$1 || lc($1) eq 'runtimerequires';
+                }
+                $section = $s;
+                last;
+            }
+            unless ($section) {
+                if ($phase eq 'runtime' && $rel eq 'requires') {
+                    $section = 'Prereqs';
+                } else {
+                    $section = 'Prereqs / '.ucfirst($phase).ucfirst($rel);
+                }
+            }
+            my $linum = $iod->insert_key(
+                {create_section=>1, ignore=>1}, $section, $mod, $ver);
+            my $modified = defined $linum;
+            if ($modified) {
+                $log->infof("%sModified dist.ini for repo '%s' (added prereq '%s')",
+                            $pargs->{-dry_run} ? "[DRY-RUN] " : "",
+                            $cbargs{repo},
+                            $mod,
+                        );
+                if ($pargs->{-dry_run}) {
+                    return [304, "Modified (dry run)"];
+                } else {
+                    eval {
+                        File::Slurper::write_text(
+                            "dist.ini", $iod->as_string);
+                    };
+                    return [500, "Can't write dist.ini: $@"] if $@;
+                    return [200, "Modified"];
+                }
+            } else {
+                return [304, "Not modified"];
+            }
+        },
+    );
+}
+
+$SPEC{remove_prereq} = {
+    v => 1.1,
+    summary => 'Remove a prereq',
+    args => {
+        %common_args,
+        %mod_args,
+    },
+    features => {dry_run=>1},
+};
+sub remove_prereq {
+    my %fargs = @_;
+
+    _for_each_repo(
+        {requires_parsed_dist_ini=>1},
+        \%fargs,
+        sub {
+            my %cbargs = @_;
+            my $pargs = $cbargs{parent_args};
+            my $iod = $cbargs{parsed_dist_ini};
+            my $mod = $pargs->{module};
+            my @sections = grep {
+                $_ =~ m!\APrereqs(?:\s*/\s*\w+)?\z!
+            } $iod->list_sections;
+            my $modified;
+            for my $section (@sections) {
+                my $num_deleted = $iod->delete_key({all=>1}, $section, $mod);
+                $modified++ if $num_deleted;
+            }
+            if ($modified) {
+                $log->infof("%sModified dist.ini for repo '%s' (removed prereq '%s')",
+                            $pargs->{-dry_run} ? "[DRY-RUN] " : "",
+                            $cbargs{repo},
+                            $mod,
+                        );
+                if ($pargs->{-dry_run}) {
+                    return [304, "Modified (dry run)"];
+                } else {
+                    eval {
+                        File::Slurper::write_text(
+                            "dist.ini", $iod->as_string);
+                    };
+                    return [500, "Can't write dist.ini: $@"] if $@;
+                    return [200, "Modified"];
+                }
+            } else {
+                return [304, "Not modified"];
+            }
+        },
+    );
 }
 
 sub _set_prereq_version {

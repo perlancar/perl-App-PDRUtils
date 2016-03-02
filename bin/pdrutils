@@ -23,6 +23,8 @@ Perinci::CmdLine::Any->new(
         'inc-prereq-version-by' => {url => "${prefix}inc_prereq_version_by"},
         'dec-prereq-version-by' => {url => "${prefix}dec_prereq_version_by"},
         'set-prereq-version-to' => {url => "${prefix}set_prereq_version_to"},
+        'remove-prereq'         => {url => "${prefix}remove_prereq"},
+        'add-prereq'            => {url => "${prefix}add_prereq"},
     },
     log => 1,
 )->run;
@@ -95,7 +97,22 @@ List distributions that does I<not> depend on a certain module:
 
  % pdrutils ls --depends-not Baz
 
-=item * Modify prereqs: set/increase/decrease version
+=item * Add prereq
+
+Add a prereq to C<Foo::Bar> (by default version is C<0> and if there is already
+an existing prereq to C<Foo::Bar>, will do nothing).
+
+ % pdrutils add-prereq Foo::Bar
+
+Set version, and replace existing prereq line:
+
+ % pdrutils add-prereq --replace Foo::Bar 1.23
+
+=item * Remove prereq
+
+ % pdrutils remove-prereq Foo::Bar
+
+=item * Modify prereq: set/increase/decrease version
 
 For example, you want to increase the minimum prereq version for all your
 distributions, e.g. L<Bencher> to 0.30:
@@ -112,10 +129,6 @@ Some other examples:
  % pdrutils inc-prereq-version-by Some::Module 0.01
  % pdrutils dec-prereq-version-by Some::Module 0.01
  % pdrutils set-prereq-version Some::Module 1.2
-
-=item * Modify prereqs: add/remove prereqs
-
-TBD
 
 =back
 
