@@ -23,6 +23,7 @@ our %common_args = (
         'x.name.is_plural' => 1,
         'x.name.singular' => 'repo',
         schema => ['array*', of=>'str*'],
+        tags => ['common'],
     },
 );
 
