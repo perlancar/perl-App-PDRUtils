@@ -10,7 +10,8 @@ use Log::Any::IfLOG '$log';
 
 use File::chdir;
 use Perinci::Object;
-use Version::Util qw(version_eq version_gt version_lt);
+use Version::Util qw(version_eq version_gt version_lt
+                     add_version subtract_version);
 
 our %Common_CLI_Attrs = (
     config_filename => ['pdrutils.conf'],
@@ -35,7 +36,7 @@ our %mod_args = (
 
 our %mod_ver_args = (
     module_version => {
-        schema => ['str*', match=>qr/\A\d+(\.\d+){0,2}\z/], # XXX perlmod_ver?
+        schema => ['str*', match=>qr/\Av?\d{1,3}(\.\d{1,3}){0,2}\z/], # XXX perlmod_ver?
         req => 1,
         pos => 1,
     },
@@ -43,7 +44,7 @@ our %mod_ver_args = (
 
 our %by_ver_args = (
     by => {
-        schema => ['str*', match=>qr/\A\d+(\.\d+){0,2}\z/],
+        schema => ['str*', match=>qr/\Av?\d{1,3}(\.\d{1,3}){0,2}\z/],
         req => 1,
         pos => 1,
     },
@@ -130,33 +131,50 @@ sub _set_prereq_version {
             my $mod = $pargs->{module};
             my $found;
             my $modified;
+            my ($v, $target_v);
           SECTION:
             for my $section ($iod->list_sections) {
                 next unless $section =~ m!\APrereqs(?:\s*/\s*\w+)?\z!;
                 for my $param ($iod->list_keys($section)) {
                     next unless $param eq $mod;
-                    my $v = $iod->get_value($section, $param);
+                    $v = $iod->get_value($section, $param);
                     return [412, "Prereq '$mod' is specified multiple times"]
                         if ref($v) eq 'ARRAY';
                     $found++;
                     if ($which eq 'set_to') {
-                        my $target_v = $pargs->{module_version};
+                        $target_v = $pargs->{module_version};
                         if (version_eq($v, $target_v)) {
                             return [304, "Version of '$mod' already the same ($v)"];
                         }
                         $iod->set_value({all=>1}, $section, $param, $target_v);
                         $modified++;
                     } elsif ($which eq 'inc_to') {
-                        my $target_v = $pargs->{module_version};
+                        $target_v = $pargs->{module_version};
                         unless (version_gt($target_v, $v)) {
                             return [304, "Version of '$mod' ($v) already >= $target_v"];
                         }
                         $iod->set_value({all=>1}, $section, $param, $target_v);
                         $modified++;
                     } elsif ($which eq 'dec_to') {
-                        my $target_v = $pargs->{module_version};
+                        $target_v = $pargs->{module_version};
                         unless (version_lt($target_v, $v)) {
                             return [304, "Version of '$mod' ($v) already <= $target_v"];
+                        }
+                        $iod->set_value({all=>1}, $section, $param, $target_v);
+                        $modified++;
+                    } elsif ($which eq 'inc_by') {
+                        eval { $target_v = add_version($v, $pargs->{by}) };
+                        return [500, "Can't add version ($v + $pargs->{by}): $@"] if $@;
+                        if (version_eq($target_v, $v)) {
+                            return [304, "Version of '$mod' ($v) already = $target_v"];
+                        }
+                        $iod->set_value({all=>1}, $section, $param, $target_v);
+                        $modified++;
+                    } elsif ($which eq 'dec_by') {
+                        eval { $target_v = subtract_version($v, $pargs->{by}) };
+                        return [500, "Can't subtract version ($v + $pargs->{by}): $@"] if $@;
+                        if (version_eq($target_v, $v)) {
+                            return [304, "Version of '$mod' ($v) already = $target_v"];
                         }
                         $iod->set_value({all=>1}, $section, $param, $target_v);
                         $modified++;
@@ -167,6 +185,11 @@ sub _set_prereq_version {
             }
             if ($found) {
                 if ($modified) {
+                    $log->infof("%sModified dist.ini for repo '%s' (set prereq '%s' version from %s to %s)",
+                                $pargs->{-dry_run} ? "[DRY-RUN] " : "",
+                                $cbargs{repo},
+                                $mod, $v, $target_v,
+                            );
                     if ($pargs->{-dry_run}) {
                         return [304, "Modified (dry run)"];
                     } else {
@@ -175,7 +198,6 @@ sub _set_prereq_version {
                                 "dist.ini", $iod->as_string);
                         };
                         return [500, "Can't write dist.ini: $@"] if $@;
-                        $log->infof("Modified dist.ini for repo '%s'", $cbargs{repo});
                         return [200, "Modified"];
                     }
                 } else {
@@ -199,7 +221,6 @@ $SPEC{inc_prereq_version_by} = {
     features => {dry_run=>1},
 };
 sub inc_prereq_version_by {
-    return [501, "Not yet implemented"];
     _set_prereq_version('inc_by', @_);
 }
 
@@ -214,7 +235,6 @@ $SPEC{dec_prereq_version_by} = {
     features => {dry_run=>1},
 };
 sub dec_prereq_version_by {
-    return [501, "Not yet implemented"];
     _set_prereq_version('dec_by', @_);
 }
 
