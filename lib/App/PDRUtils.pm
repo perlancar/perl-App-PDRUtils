@@ -53,28 +53,71 @@ our %by_ver_args = (
 
 our %SPEC;
 
+sub _ciod {
+    state $ciod = do {
+        require Config::IOD;
+        Config::IOD->new(
+            ignore_unknown_directive => 1,
+        );
+    };
+    $ciod;
+}
+
 $SPEC{':package'} = {
     v => 1.1,
     summary => 'Collection of utilities for perl dist repos',
 };
-
 sub _for_each_repo {
-    my ($parent_args, $callback) = @_;
+    require File::Slurper;
+
+    my ($opts, $parent_args, $callback) = @_;
+
+    $opts //= {};
+
     local $CWD = $CWD;
     my $envres = envresmulti();
   REPO:
     for my $repo (@{ $parent_args->{repos} }) {
         $log->tracef("Processing repo %s ...", $repo);
-        # XXX filter
+
         eval { $CWD = $repo };
         if ($@) {
             $log->warnf("Can't cd to repo %s, skipped", $repo);
             $envres->add_result(500, "Can't cd to repo", {item_id=>$repo});
             next REPO;
         }
+
+        my $requires_parsed_dist_ini = $opts->{requires_parsed_dist_ini} //
+            (grep {defined($parent_args->{$_})} qw/depends/);
+        my $requires_dist_ini = $opts->{requires_dist_ini};
+        $requires_dist_ini ||= $requires_parsed_dist_ini;
+
+        my $dist_ini;
+        my $parsed_dist_ini;
+
+        if ($requires_dist_ini) {
+            unless (-f "dist.ini") {
+                $log->warnf("No dist.ini in repo %s, skipped", $repo);
+                $envres->add_result(412, "No dist.ini in repo", {item_id=>$repo});
+                next REPO;
+            }
+            $dist_ini = File::Slurper::read_text("dist.ini");
+        }
+
+        if ($requires_parsed_dist_ini) {
+            eval { $parsed_dist_ini = _ciod->read_string($dist_ini) };
+            if ($@) {
+                $log->warnf("Can't parse dist.ini in repo %s, skipped", $repo);
+                $envres->add_result(412, "Can't parse dist.ini: $@");
+                next REPO;
+            }
+        }
+
         my $res = $callback->(
             parent_args => $parent_args,
             repo => $repo,
+            (dist_ini => $dist_ini) x !!defined($dist_ini),
+            (parsed_dist_ini => $parsed_dist_ini) x !!defined($parsed_dist_ini),
         );
         $log->tracef("Result for repo '%s': %s", $repo, $res);
         if ($res->[0] != 200 && $res->[0] != 304) {
@@ -85,37 +128,6 @@ sub _for_each_repo {
     $envres->as_struct;
 }
 
-sub _for_each_dist_ini_in_repo {
-    require Config::IOD;
-    require File::Slurper;
-
-    my ($parent_args, $callback) = @_;
-
-    my $ciod = Config::IOD->new(
-        ignore_unknown_directive => 1,
-    );
-
-    _for_each_repo(
-        $parent_args,
-        sub {
-            my %cbargs = @_;
-            my $repo = $cbargs{repo};
-            return [412, "No dist.ini in repo"] unless (-f "dist.ini");
-            my $raw = File::Slurper::read_text("dist.ini");
-            my $iod;
-            eval { $iod = $ciod->read_string($raw) };
-            return [412, "Can't parse dist.ini: $@"] if $@;
-
-            $callback->(
-                parent_args => $parent_args,
-                repo => $repo,
-                dist_ini => $raw,
-                parsed_dist_ini => $iod,
-            );
-        },
-    );
-}
-
 sub _set_prereq_version {
     require Config::IOD;
     require File::Slurper;
@@ -123,7 +135,8 @@ sub _set_prereq_version {
     my $which = shift;
     my %fargs = @_;
 
-    _for_each_dist_ini_in_repo(
+    _for_each_repo(
+        {requires_parsed_dist_ini => 1},
         \%fargs,
         sub {
             my %cbargs = @_;
