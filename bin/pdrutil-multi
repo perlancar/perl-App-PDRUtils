@@ -142,7 +142,7 @@ Some other examples:
  % pdrutil-multi dec-prereq-version-to Some::Module 1.2
  % pdrutil-multi inc-prereq-version-by Some::Module 0.01
  % pdrutil-multi dec-prereq-version-by Some::Module 0.01
- % pdrutil-multi set-prereq-version Some::Module 1.2
+ % pdrutil-multi set-prereq-version-to Some::Module 1.2
 
 =back
 
