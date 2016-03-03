@@ -79,6 +79,8 @@ L<IOD> for more details on the configuration format.)
 
 A few things that you can do:
 
+=over
+
 =item * List repositories based on various criteria
 
 List the repositories (directory names):
@@ -141,6 +143,8 @@ Some other examples:
  % pdrutil-multi inc-prereq-version-by Some::Module 0.01
  % pdrutil-multi dec-prereq-version-by Some::Module 0.01
  % pdrutil-multi set-prereq-version Some::Module 1.2
+
+=back
 
 
 =head1 SEE ALSO

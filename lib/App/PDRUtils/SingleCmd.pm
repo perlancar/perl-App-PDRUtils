@@ -9,7 +9,6 @@ use warnings;
 use Log::Any::IfLOG '$log';
 
 use App::PDRUtils::DistIniCmd;
-use App::PDRUtils::SingleCmd;
 use Function::Fallback::CoreOrPP qw(clone);
 
 our %common_args = (
@@ -76,3 +75,9 @@ sub create_cmd_from_dist_ini_cmd {
 
 1;
 # ABSTRACT: Common stuffs for App::PDRUtils::SingleCmd::*
+
+=head1 FUNCTIONS
+
+=head2 create_cmd_from_dist_ini_cmd(%args)
+
+=cut

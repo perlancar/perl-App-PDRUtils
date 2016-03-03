@@ -336,3 +336,9 @@ sub create_cmd_from_dist_ini_cmd {
 
 1;
 # ABSTRACT: Common stuffs for App::PDRUtils::MultiCmd::*
+
+=head1 FUNCTIONS
+
+=head2 create_cmd_from_dist_ini_cmd(%args)
+
+=cut

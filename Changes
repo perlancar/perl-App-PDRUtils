@@ -1,5 +1,14 @@
 Revision history for App-PDRUtils
 
+0.04    2016-03-03 (PERLANCAR)
+
+        - [Internal] [Refactor] Modularize each subcommand to a separate module.
+
+        - Replace CLI script 'pdrutils' with 'pdrutil' (which operates on a
+          single perl dist repository at a time) and 'pdrutil-multi' (which
+          operates on multiple perl dist repositories at a time).
+
+
 0.03    2016-03-02 (PERLANCAR)
 
 	- Add some filtering options: --{exclude,include}-dist{,-pattern},
