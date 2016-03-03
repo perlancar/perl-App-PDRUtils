@@ -358,8 +358,16 @@ sub create_cmd_from_dist_ini_cmd {
 1;
 # ABSTRACT: Common stuffs for App::PDRUtils::MultiCmd::*
 
+=head1 DESCRIPTION
+
+A module in L<App::PDRUtils::MultiCmd> namespace represents a subcommand for the
+L<pdrutil-multi> utility.
+
+
 =head1 FUNCTIONS
 
 =head2 create_cmd_from_dist_ini_cmd(%args)
+
+Turn a DistIniCmd into a MultiCmd.
 
 =cut
