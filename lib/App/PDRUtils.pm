@@ -12,7 +12,7 @@ use File::chdir;
 use Perinci::Object;
 
 our %Common_CLI_Attrs = (
-    config_filename => ['pdrutils.conf'],
+    #config_filename => ['pdrutils.conf'],
 );
 
 our %SPEC;

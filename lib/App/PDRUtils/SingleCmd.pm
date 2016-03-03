@@ -36,8 +36,8 @@ sub create_cmd_from_dist_ini_cmd {
     for (keys %App::PDRUtils::DistIniCmd::common_args) {
         delete $spec->{args}{$_};
     }
-    for (keys %App::PDRUtils::SingleCmd::common_args) {
-        $spec->{args}{$_} = $App::PDRUtils::SingleCmd::common_args{$_};
+    for (keys %common_args) {
+        $spec->{args}{$_} = $common_args{$_};
     }
     $spec->{features}{dry_run} = 1;
 
