@@ -1,5 +1,14 @@
 Revision history for App-PDRUtils
 
+0.05    2016-03-03 (PERLANCAR)
+
+        - Add subcommands: ls, sort-prereqs.
+
+        - Allow multiple --depends, add --doesnt-depend.
+
+        - Some fixes.
+
+
 0.04    2016-03-03 (PERLANCAR)
 
         - [Internal] [Refactor] Modularize each subcommand to a separate module.
