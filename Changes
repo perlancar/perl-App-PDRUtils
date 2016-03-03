@@ -1,5 +1,12 @@
 Revision history for App-PDRUtils
 
+0.06    2016-03-03 (PERLANCAR)
+
+	- sort-prereqs: Fix spacing.
+
+	- sort-prereqs: Add option --spacing to set spacing explicitly.
+
+
 0.05    2016-03-03 (PERLANCAR)
 
         - Add subcommands: ls, sort-prereqs.
