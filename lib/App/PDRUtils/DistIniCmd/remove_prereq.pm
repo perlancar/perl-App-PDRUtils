@@ -6,10 +6,11 @@ package App::PDRUtils::DistIniCmd::remove_prereq;
 use 5.010001;
 use strict;
 use warnings;
-use Log::Any::IfLOG '$log';
 
 use App::PDRUtils::Cmd;
 use App::PDRUtils::DistIniCmd;
+
+our %SPEC;
 
 $SPEC{handle_cmd} = {
     v => 1.1,

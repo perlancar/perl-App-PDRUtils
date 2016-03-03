@@ -11,6 +11,8 @@ use App::PDRUtils::Cmd;
 use App::PDRUtils::DistIniCmd;
 use App::PDRUtils::DistIniCmd::_modify_prereq_version;
 
+our %SPEC;
+
 $SPEC{handle_cmd} = {
     v => 1.1,
     summary => 'Decrease prereq version by a certain decrement',
