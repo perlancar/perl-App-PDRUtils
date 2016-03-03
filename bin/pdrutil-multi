@@ -1,0 +1,150 @@
+#!perl
+
+# DATE
+# VERSION
+
+BEGIN { $ENV{VERBOSE} //= 1 }
+
+use 5.010;
+use strict;
+use warnings;
+require Log::Any unless $ENV{COMP_LINE};
+
+use App::PDRUtils;
+use Perinci::CmdLine::Any;
+use PERLANCAR::Module::List;
+
+my $mods = do {
+    # if we are called during building by dzil, don't include subcommands
+    # installed outside our dist. otherwise we'll be documenting and depending
+    # on extraneous subcommands.
+    local @INC = ("lib") if $ENV{DZIL};
+
+    PERLANCAR::Module::List::list_modules(
+        "App::PDRUtils::MultiCmd::", {list_modules=>1});
+};
+
+my $subcommands = {};
+for my $mod (keys %$mods) {
+    (my $sc_name = $mod) =~ s/App::PDRUtils::MultiCmd:://;
+    next if $sc_name =~ /^_/;
+    $sc_name =~ s/_/-/g;
+
+    # ignore old subcommands
+    #next if $sc_name =~ /\A(...|...)\z/;
+
+    (my $url = $mod) =~ s!::!/!g;
+    $subcommands->{$sc_name} = {
+        url => "/$url/handle_cmd",
+    };
+}
+
+Perinci::CmdLine::Any->new(
+    %App::PDRUtils::Common_CLI_Attrs,
+    url => '/App/PDRUtils/',
+    subcommands => $subcommands,
+    log => 1, # XXX doesn't work? we still need to add 'require Log::Any' line above
+    #log_level => 'info',
+)->run;
+
+1;
+# ABSTRACT:
+# PODNAME:
+
+=head1 DESCRIPTION
+
+B<EARLY RELEASE. SOME THINGS ARE NOT YET IMPLEMENTED.>
+
+This utility operates multiple Perl distribution repositories. To use this
+utility, first create a configuration C<~/pdrutil-multi.conf> containing at the
+very least something like:
+
+ repos = !paths ~/repos/perl-*
+
+You can change the C<~/repos/perl-*> part to a wildcard of where you put your
+perl dist repos. Another example where you specify multiple wildcard patterns:
+
+ repos = !paths ~/repos/perl-* ~/repos-[12]*/perl-* ~/repos-private/perl-*
+
+Or, if you prefer to specify the repos individually:
+
+ repos = /home/budi/Foo-Bar
+ repos = /home/budi/Foo-Baz
+ repos = /home/budi/Qux
+ repos = !path ~/perl-Module-Zap
+
+(Note that if you want C<~> to be expanded into your home directory, like in a
+Unix shell, you need to put C<!path> encoding as the prefix for the value. See
+L<IOD> for more details on the configuration format.)
+
+A few things that you can do:
+
+=item * List repositories based on various criteria
+
+List the repositories (directory names):
+
+ % pdrutil-multi ls
+
+List the directory names as well as other details of the repositories:
+
+ % pdrutil-multi ls -l
+
+List repositories that have unclean git status (needs to be committed, etc):
+
+ % pdrutil-multi ls --no-git-clean
+
+List repositories that specify prereq to a certain module:
+
+ % pdrutil-multi ls --depends Foo::Bar
+ % pdrutil-multi ls --depends 'Foo::Bar >= 0.12'
+ % pdrutil-multi ls --depends 'Foo::Bar = 0.12'
+ % pdrutil-multi ls --depends 'Foo::Bar < 0.12'
+
+List repositories that depend on certain prereq in a certain phase/relationship
+only:
+
+ % pdrutil-multi ls --depends 'Test::More < 0.98' --phase test
+
+List distributions that does I<not> depend on a certain module:
+
+ % pdrutil-multi ls --doesnt-depend Baz
+
+=item * Add prereq
+
+Add a prereq to C<Foo::Bar> (by default version is C<0> and if there is already
+an existing prereq to C<Foo::Bar>, will do nothing).
+
+ % pdrutil-multi add-prereq Foo::Bar
+
+Set version, and replace existing prereq line:
+
+ % pdrutil-multi add-prereq --replace Foo::Bar 1.23
+
+=item * Remove prereq
+
+ % pdrutil-multi remove-prereq Foo::Bar
+
+=item * Modify prereq: set/increase/decrease version
+
+For example, you want to increase the minimum prereq version for all your
+distributions, e.g. L<Bencher> to 0.30:
+
+ % pdrutil-multi inc-prereq-version-to Bencher 0.30
+
+All distributions which do not list L<Bencher> as a prereq in their F<dist.ini>,
+or distributions which already list L<Bencher> version 0.30 or later, won't be
+modified.
+
+Some other examples:
+
+ % pdrutil-multi dec-prereq-version-to Some::Module 1.2
+ % pdrutil-multi inc-prereq-version-by Some::Module 0.01
+ % pdrutil-multi dec-prereq-version-by Some::Module 0.01
+ % pdrutil-multi set-prereq-version Some::Module 1.2
+
+
+=head1 SEE ALSO
+
+L<pdrutil> which operates on a single Perl distribution repository at a time.
+
+=cut

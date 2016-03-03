@@ -1,0 +1,264 @@
+package App::PDRUtils::MultiCmd;
+
+# DATE
+# VERSION
+
+use 5.010001;
+use strict;
+use warnings;
+
+our %common_args = (
+    repos => {
+        summary => '',
+        'x.name.is_plural' => 1,
+        'x.name.singular' => 'repo',
+        schema => ['array*', of=>'str*'],
+        tags => ['common'],
+    },
+
+    # XXX has_dist_ini filter option
+
+    depends => {
+        summary => 'Only include repos that has prereq to a specified module',
+        schema => 'str*',
+        tags => ['common', 'category:fitering'],
+    },
+
+    # XXX doesnt_depend
+
+    include_dists => {
+        'x.name.is_plural' => 1,
+        'x.name.singular' => 'include_dist',
+        summary => 'Only include repos which have specified name(s)',
+        schema => ['array*', of=>'str*'],
+        tags => ['common', 'category:fitering'],
+    },
+    exclude_dists => {
+        'x.name.is_plural' => 1,
+        'x.name.singular' => 'exclude_dist',
+        summary => 'Exclude repos which have specified name(s)',
+        schema => ['array*', of=>'str*'],
+        tags => ['common', 'category:fitering'],
+    },
+    include_dist_patterns => {
+        'x.name.is_plural' => 1,
+        'x.name.singular' => 'include_dist_pattern',
+        summary => 'Only include repos which match specified pattern(s)',
+        schema => ['array*', of=>'str*'],
+        tags => ['common', 'category:fitering'],
+    },
+    exclude_dist_patterns => {
+        'x.name.is_plural' => 1,
+        'x.name.singular' => 'exclude_dist_pattern',
+        summary => 'Exclude repos which match specified pattern(s)',
+        schema => ['array*', of=>'str*'],
+        tags => ['common', 'category:fitering'],
+    },
+    has_tags => {
+        'x.name.is_plural' => 1,
+        'x.name.singular' => 'has_tag',
+        summary => 'Only include repos which have specified tag(s)',
+        description => <<'_',
+
+A repo can be tagged by tag `X` if it has a top-level file named `.tag-X`.
+
+_
+        schema => ['array*', of=>['str*'=>match=>qr/\A[A-Za-z0-9_-]+\z/]],
+        tags => ['common', 'category:fitering'],
+    },
+    lacks_tags => {
+        'x.name.is_plural' => 1,
+        'x.name.singular' => 'lacks_tag',
+        summary => 'Exclude repos which have specified tag(s)',
+        description => <<'_',
+
+A repo can be tagged by tag `X` if it has a top-level file named `.tag-X`.
+
+_
+        schema => ['array*', of=>['str*'=>match=>qr/\A[A-Za-z0-9_-]+\z/]],
+        tags => ['common', 'category:fitering'],
+    },
+);
+
+sub _ciod {
+    state $ciod = do {
+        require Config::IOD;
+        Config::IOD->new(
+            ignore_unknown_directive => 1,
+        );
+    };
+    $ciod;
+}
+
+sub _for_each_repo {
+    require File::Slurper;
+
+    my ($opts, $pargs, $callback) = @_;
+
+    $opts //= {};
+
+    local $CWD = $CWD;
+    my $envres = envresmulti();
+  REPO:
+    for my $repo (@{ $pargs->{repos} }) {
+        $log->tracef("Processing repo %s ...", $repo);
+
+        eval { $CWD = $repo };
+        if ($@) {
+            $log->warnf("Can't cd to repo %s, skipped", $repo);
+            $envres->add_result(500, "Can't cd to repo", {item_id=>$repo});
+            next REPO;
+        }
+
+        my $requires_parsed_dist_ini = $opts->{requires_parsed_dist_ini} //
+            (grep {defined($pargs->{$_})} qw/
+                                                depends
+                                                include_dists exclude_dists
+                                                include_dist_patterns exclude_dist_patterns
+                                            /);
+        my $requires_dist_ini = $opts->{requires_dist_ini};
+        $requires_dist_ini ||= $requires_parsed_dist_ini;
+
+        my $dist_ini;
+        my $parsed_dist_ini;
+
+        if ($requires_dist_ini) {
+            unless (-f "dist.ini") {
+                $log->warnf("No dist.ini in repo %s, skipped", $repo);
+                $envres->add_result(412, "No dist.ini in repo", {item_id=>$repo});
+                next REPO;
+            }
+            $dist_ini = File::Slurper::read_text("dist.ini");
+        }
+
+        if ($requires_parsed_dist_ini) {
+            eval { $parsed_dist_ini = _ciod->read_string($dist_ini) };
+            if ($@) {
+                $log->warnf("Can't parse dist.ini in repo %s, skipped", $repo);
+                $envres->add_result(412, "Can't parse dist.ini: $@");
+                next REPO;
+            }
+        }
+
+        my $excluded;
+      FILTER:
+        {
+            my $dist_name = $parsed_dist_ini->get_value("GLOBAL", "name");
+          INCLUDE_DISTS:
+            {
+                last unless $pargs->{include_dists} && @{ $pargs->{include_dists} };
+                unless (defined $dist_name) {
+                    $log->warnf("Dist name undefined in repo %s, skipped", $repo);
+                    $excluded++;
+                    last FILTER;
+                }
+                for my $d (@{ $pargs->{include_dists} }) {
+                    if ($dist_name eq $d) {
+                        last INCLUDE_DISTS;
+                    }
+                }
+                $log->tracef("Skipping repo (not in include_dists)");
+                $excluded++;
+                last FILTER;
+            }
+          EXCLUDE_DISTS:
+            {
+                last unless $pargs->{exclude_dists} && @{ $pargs->{exclude_dists} };
+                unless (defined $dist_name) {
+                    $log->warnf("Dist name undefined in repo %s, skipped", $repo);
+                    $excluded++;
+                    last FILTER;
+                }
+                for my $d (@{ $pargs->{exclude_dists} }) {
+                    if ($dist_name eq $d) {
+                        $log->tracef("Skipping repo (in exclude_dists)");
+                        $excluded++;
+                        last FILTER;
+                    }
+                }
+            }
+          INCLUDE_DIST_PATTERNS:
+            {
+                last unless $pargs->{include_dist_patterns} && @{ $pargs->{include_dist_patterns} };
+                unless (defined $dist_name) {
+                    $log->warnf("Dist name undefined in repo %s, skipped", $repo);
+                    $excluded++;
+                    last FILTER;
+                }
+                for my $d (@{ $pargs->{include_dist_patterns} }) {
+                    if ($dist_name =~ /$d/) {
+                        last INCLUDE_DIST_PATTERNS;
+                    }
+                }
+                $log->tracef("Skipping repo (doesn't match include_dist_patterns)");
+                $excluded++;
+                last FILTER;
+            }
+          EXCLUDE_DIST_PATTERNS:
+            {
+                last unless $pargs->{exclude_dist_patterns} && @{ $pargs->{exclude_dist_patterns} };
+                unless (defined $dist_name) {
+                    $log->warnf("Dist name undefined in repo %s, skipped", $repo);
+                    $excluded++;
+                    last FILTER;
+                }
+                for my $d (@{ $pargs->{exclude_dist_patterns} }) {
+                    if ($dist_name =~ /$d/) {
+                        $log->tracef("Skipping repo (match exclude_dist_patterns)");
+                        $excluded++;
+                        last FILTER;
+                    }
+                }
+            }
+          DEPENDS:
+            {
+                last unless defined $pargs->{depends};
+                unless (_has_prereq($parsed_dist_ini, $pargs->{depends})) {
+                    $log->tracef("Skipping repo %s (doesn't depend on $pargs->{depends})", $repo);
+                    $excluded++;
+                    last FILTER;
+                }
+            }
+          HAS_TAGS:
+            {
+                last unless $pargs->{has_tags} && @{ $pargs->{has_tags} };
+                for my $t (@{ $pargs->{has_tags} }) {
+                    if (-f ".tag-$t") {
+                        last HAS_TAGS;
+                    }
+                }
+                $log->tracef("Skipping repo (doesn't have any tag in has_tags)");
+                $excluded++;
+                last FILTER;
+            }
+          LACKS_TAGS:
+            {
+                last unless $pargs->{lacks_tags} && @{ $pargs->{lacks_tags} };
+                for my $t (@{ $pargs->{lacks_tags} }) {
+                    if (-f ".tag-$t") {
+                        $log->tracef("Skipping repo (has tag '$t' in lacks_tags)");
+                        $excluded++;
+                        last FILTER;
+                    }
+                }
+            }
+        }
+        next REPO if $excluded;
+
+        my $res = $callback->(
+            parent_args => $pargs,
+            repo => $repo,
+            (dist_ini => $dist_ini) x !!defined($dist_ini),
+            (parsed_dist_ini => $parsed_dist_ini) x !!defined($parsed_dist_ini),
+        );
+        $log->tracef("Result for repo '%s': %s", $repo, $res);
+        if ($res->[0] != 200 && $res->[0] != 304) {
+            $log->warnf("Processing repo %s failed: %s", $repo, $res);
+        }
+        $envres->add_result(@$res, {item_id=>$repo});
+    }
+    $envres->as_struct;
+}
+
+1;
+# ABSTRACT: Common stuffs for App::PDRUtils::MultiCmd::*

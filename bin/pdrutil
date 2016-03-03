@@ -1,0 +1,64 @@
+#!perl
+
+# DATE
+# VERSION
+
+BEGIN { $ENV{VERBOSE} //= 1 }
+
+use 5.010;
+use strict;
+use warnings;
+require Log::Any unless $ENV{COMP_LINE};
+
+use App::PDRUtils;
+use Perinci::CmdLine::Any;
+use PERLANCAR::Module::List;
+
+my $mods = do {
+    # if we are called during building by dzil, don't include subcommands
+    # installed outside our dist. otherwise we'll be documenting and depending
+    # on extraneous subcommands.
+    local @INC = ("lib") if $ENV{DZIL};
+
+    PERLANCAR::Module::List::list_modules(
+        "App::PDRUtils::SingleCmd::", {list_modules=>1});
+};
+
+my $subcommands = {};
+for my $mod (keys %$mods) {
+    (my $sc_name = $mod) =~ s/App::PDRUtils::SingleCmd:://;
+    next if $sc_name =~ /^_/;
+    $sc_name =~ s/_/-/g;
+
+    # ignore old subcommands
+    #next if $sc_name =~ /\A(...|...)\z/;
+
+    (my $url = $mod) =~ s!::!/!g;
+    $subcommands->{$sc_name} = {
+        url => "/$url/handle_cmd",
+    };
+}
+
+Perinci::CmdLine::Any->new(
+    %App::PDRUtils::Common_CLI_Attrs,
+    url => '/App/PDRUtils/',
+    subcommands => $subcommands,
+    log => 1, # XXX doesn't work? we still need to add 'require Log::Any' line above
+    #log_level => 'info',
+)->run;
+
+1;
+# ABSTRACT:
+# PODNAME:
+
+=head1 DESCRIPTION
+
+This utility operates on a single Perl distribution repository.
+
+
+=head1 SEE ALSO
+
+L<pdrutil-multi> which operates on several Perl distribution repositories at
+once.
+
+=cut
