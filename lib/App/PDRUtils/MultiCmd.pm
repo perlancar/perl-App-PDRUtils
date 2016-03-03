@@ -26,12 +26,16 @@ our %common_args = (
     # XXX has_dist_ini filter option
 
     depends => {
-        summary => 'Only include repos that has prereq to a specified module',
-        schema => 'str*',
+        summary => 'Only include repos that has prereq to specified module(s)',
+        schema => ['array*', of=>'str*'],
         tags => ['common', 'category:fitering'],
     },
 
-    # XXX doesnt_depend
+    doesnt_depend => {
+        summary => 'Exclude repos that has prereq to specified module(s)',
+        schema => ['array*', of=>'str*'],
+        tags => ['common', 'category:fitering'],
+    },
 
     include_dists => {
         'x.name.is_plural' => 1,
@@ -119,7 +123,7 @@ sub _for_each_repo {
 
         my $requires_parsed_dist_ini = $opts->{requires_parsed_dist_ini} //
             (grep {defined($pargs->{$_})} qw/
-                                                depends
+                                                depends doesnt_depend
                                                 include_dists exclude_dists
                                                 include_dist_patterns exclude_dist_patterns
                                             /);
@@ -219,11 +223,27 @@ sub _for_each_repo {
             }
           DEPENDS:
             {
-                last unless defined $pargs->{depends};
-                unless (App::PDRUtils::Cmd::_has_prereq($parsed_dist_ini, $pargs->{depends})) {
-                    $log->tracef("Skipping repo %s (doesn't depend on $pargs->{depends})", $repo);
-                    $excluded++;
-                    last FILTER;
+                my $mods = $pargs->{depends};
+                last unless $mods && @$mods;
+                for my $mod (@$mods) {
+                    if (App::PDRUtils::Cmd::_has_prereq($parsed_dist_ini, $mod)) {
+                        last DEPENDS;
+                    }
+                }
+                $log->tracef("Skipping repo %s (doesn't depend on ".join("/", @$mods).")", $repo);
+                $excluded++;
+                last FILTER;
+            }
+          DOESNT_DEPEND:
+            {
+                my $mods = $pargs->{doesnt_depend};
+                last unless $mods && @$mods;
+                for my $mod (@$mods) {
+                    if (App::PDRUtils::Cmd::_has_prereq($parsed_dist_ini, $mod)) {
+                        $log->tracef("Skipping repo %s (depends on $mod)", $repo);
+                        $excluded++;
+                        last FILTER;
+                    }
                 }
             }
           HAS_TAGS:
