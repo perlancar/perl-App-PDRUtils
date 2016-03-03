@@ -30,6 +30,10 @@ Can detect one-spacing or two-spacing. Detects directives and comments.
 _
     args => {
         %App::PDRUtils::DistIniCmd::common_args,
+        spacing => {
+            summary => 'Set spacing explicitly',
+            schema => ['int*', min=>1, max=>10],
+        },
     },
 };
 sub handle_cmd {
@@ -81,7 +85,8 @@ sub handle_cmd {
                 parsed => $l,
             };
         }
-        my $spacing = floor(($num_blank_lines) / ($num_key_lines+1))+1;
+        my $spacing = $fargs{spacing} //
+            (floor(($num_blank_lines) / ($num_key_lines+1))+1);
 
         # there's no prereq lines, no need to sort this section
         next unless $num_key_lines;
