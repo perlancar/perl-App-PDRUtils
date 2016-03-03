@@ -8,6 +8,7 @@ use strict;
 use warnings;
 use Log::Any::IfLOG '$log';
 
+use App::PDRUtils::Cmd;
 use App::PDRUtils::DistIniCmd;
 use File::chdir;
 use Function::Fallback::CoreOrPP qw(clone);
@@ -219,7 +220,7 @@ sub _for_each_repo {
           DEPENDS:
             {
                 last unless defined $pargs->{depends};
-                unless (_has_prereq($parsed_dist_ini, $pargs->{depends})) {
+                unless (App::PDRUtils::Cmd::_has_prereq($parsed_dist_ini, $pargs->{depends})) {
                     $log->tracef("Skipping repo %s (doesn't depend on $pargs->{depends})", $repo);
                     $excluded++;
                     last FILTER;
