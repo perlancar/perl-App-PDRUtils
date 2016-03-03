@@ -48,7 +48,7 @@ sub handle_cmd {
 
     my $section;
     for my $s ($iod->list_sections) {
-        next unless $s =~ m!\Aprereqs(?:\s*/\s*(\w+))?\z!;
+        next unless $s =~ m!\Aprereqs(?:\s*/\s*(\w+))?\z!ix;
         if ($phase eq 'runtime' && $rel eq 'requires') {
             next unless !$1 || lc($1) eq 'runtimerequires';
         }
