@@ -51,6 +51,8 @@ sub handle_cmd {
         next unless $s =~ m!\Aprereqs(?:\s*/\s*(\w+))?\z!ix;
         if ($phase eq 'runtime' && $rel eq 'requires') {
             next unless !$1 || lc($1) eq 'runtimerequires';
+        } else {
+            next unless  $1 && lc($1) eq $phase.$rel;
         }
         $section = $s;
         last;
