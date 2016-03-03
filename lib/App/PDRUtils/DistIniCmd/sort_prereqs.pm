@@ -128,7 +128,7 @@ sub handle_cmd {
                 my $lrec = $lines[$i];
                 if (!defined($cur_mod) || $cur_mod ne $lrec->{mod}) {
                     for (1..$spacing-1) {
-                        splice @lines, $i, 0, {parsed=>['B', "\n"]};
+                        splice @lines, $i+1, 0, {parsed=>['B', "\n"]};
                     }
                 }
                 $cur_mod = $lrec->{mod};
