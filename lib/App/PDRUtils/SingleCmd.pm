@@ -69,6 +69,12 @@ sub create_cmd_from_dist_ini_cmd {
         } else {
             $log->tracef("%d - %s", $res->[0], $res->[1]);
         }
+
+        # move final result so users can see it
+        if (exists $res->[3]{'func.result'}) {
+            $res->[2] = delete $res->[3]{'func.result'};
+        }
+
         $res;
     };
 }

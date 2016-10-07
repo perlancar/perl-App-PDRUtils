@@ -26,6 +26,8 @@ our %common_args = (
 A module under the L<App::PDRUtils::DistIniCmd> namespace represents a command
 that modifies F<dist.ini>. It is passed a parsed F<dist.ini> in the form of
 L<Config::IOD::Document> object and is expected to modify the object and return
-status 200 (along with the object), or return 304 if nothing is modified.
+status 200 (along with the object), or return 304 if nothing is modified. Result
+(if there is an output) can be returned in the result metadata in
+C<func.result> key).
 
 A DistIniCmd can easily be turned into a SingleCmd or MultiCmd.
