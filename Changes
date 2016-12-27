@@ -1,5 +1,13 @@
 Revision history for App-PDRUtils
 
+0.09    2016-12-28 (PERLANCAR)
+
+        - list-prereqs, add-prereq: Grok -phase and -relationship/-type in
+          Prereqs sections.
+
+        - [dist] Fix expressing follow-spec prereq relationship with x_spec.
+
+
 0.08    2016-12-27 (PERLANCAR)
 
 	- list-prereqs: add --module to filter by module name.
