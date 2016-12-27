@@ -53,12 +53,29 @@ sub handle_cmd {
     for my $sect (sort keys %$hoh) {
         next unless $sect =~ m!\A
                                Prereqs
-                               (?:\s*/\s*
-                                   (Configure|Build|Test|Runtime|Develop)
-                                   (Requires|Recommends|Suggests|Conflicts))?
+                               (?:\s*/\s*(.+))?
                                \z!x;
-        my $phase = $1 // "Runtime";
-        my $rel   = $2 // "Requires";
+        my $plugin_name = $1;
+        my ($phase, $rel);
+        if ($plugin_name &&
+                $plugin_name =~ /\A(Configure|Build|Test|Runtime|Develop)
+                                 (Requires|Recommends|Suggests|Conflicts)\z/x) {
+            $phase = $1;
+            $rel   = $2;
+        }
+
+        my $prereqs = $hoh->{$sect};
+        for (keys %$prereqs) {
+            if (/^-phase$/) {
+                $phase = delete $prereqs->{$_};
+            }
+            if (/^-(relationship|type)$/) {
+                $rel = delete $prereqs->{$_};
+            }
+        }
+
+        $phase //= "runtime";
+        $rel   //= "requires";
 
         if (defined $fargs{phase}) {
             next unless lc($fargs{phase}) eq lc($phase);
@@ -67,7 +84,6 @@ sub handle_cmd {
             next unless lc($fargs{rel}) eq lc($rel);
         }
 
-        my $prereqs = $hoh->{$sect};
         for my $mod (sort keys %$prereqs) {
             my $version = $prereqs->{$mod};
             if (defined $fargs{module}) {
