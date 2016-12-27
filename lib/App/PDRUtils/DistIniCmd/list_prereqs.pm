@@ -24,6 +24,11 @@ This command list prerequisites found in `[Prereqs/*]` sections in your
 _
     args => {
         %App::PDRUtils::DistIniCmd::common_args,
+        module => {
+            summary => 'Module name',
+            schema => ['perl::modname*'],
+            tags => ['category:filtering'],
+        },
         phase => {
             schema => ['str*', in=>[qw/configure build test runtime develop/]],
             tags => ['category:filtering'],
@@ -65,6 +70,9 @@ sub handle_cmd {
         my $prereqs = $hoh->{$sect};
         for my $mod (sort keys %$prereqs) {
             my $version = $prereqs->{$mod};
+            if (defined $fargs{module}) {
+                next unless $fargs{module} eq $mod;
+            }
             push @res, {
                 module  => $mod,
                 version => $version,
