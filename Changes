@@ -1,5 +1,3 @@
-Revision history for App-PDRUtils
-
 0.09    2016-12-28 (PERLANCAR)
 
         - list-prereqs, add-prereq: Grok -phase and -relationship/-type in
