@@ -6,7 +6,7 @@ package App::PDRUtils::SingleCmd;
 use 5.010001;
 use strict;
 use warnings;
-use Log::Any::IfLOG '$log';
+use Log::ger;
 
 use App::PDRUtils::DistIniCmd;
 use Function::Fallback::CoreOrPP qw(clone);
@@ -57,7 +57,7 @@ sub create_cmd_from_dist_ini_cmd {
             parsed_dist_ini => $iod,
         );
         if ($res->[0] == 200) {
-            $log->infof("%s%s",
+            log_info("%s%s",
                         $fargs{-dry_run} ? "[DRY-RUN] " : "",
                         $res->[1]);
             if ($fargs{-dry_run}) {
@@ -67,7 +67,7 @@ sub create_cmd_from_dist_ini_cmd {
             }
             undef $res->[2];
         } else {
-            $log->tracef("%d - %s", $res->[0], $res->[1]);
+            log_trace("%d - %s", $res->[0], $res->[1]);
         }
 
         # move final result so users can see it
