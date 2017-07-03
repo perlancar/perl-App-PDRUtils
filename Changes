@@ -1,3 +1,10 @@
+0.10    2017-07-03 (PERLANCAR)
+
+	- No functional changes.
+
+	- Switch from Log::Any to Log::ger.
+
+
 0.09    2016-12-28 (PERLANCAR)
 
         - list-prereqs, add-prereq: Grok -phase and -relationship/-type in
