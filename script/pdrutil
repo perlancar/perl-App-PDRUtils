@@ -8,7 +8,7 @@ BEGIN { $ENV{VERBOSE} //= 1 }
 use 5.010;
 use strict;
 use warnings;
-require Log::Any unless $ENV{COMP_LINE};
+use Log::ger;
 
 use App::PDRUtils;
 use Perinci::CmdLine::Any;
@@ -43,8 +43,8 @@ Perinci::CmdLine::Any->new(
     %App::PDRUtils::Common_CLI_Attrs,
     url => '/App/PDRUtils/',
     subcommands => $subcommands,
-    log => 1, # XXX doesn't work? we still need to add 'require Log::Any' line above
-    #log_level => 'info',
+    log => 1,
+    log_level => 'info',
 )->run;
 
 1;
