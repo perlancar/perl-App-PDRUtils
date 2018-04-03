@@ -17,7 +17,7 @@ our %mod_args = (
 
 our %mod_ver_args = (
     module_version => {
-        schema => ['str*', match=>qr/\Av?\d{1,3}(\.\d{1,3}){0,2}\z/], # XXX perlmod_ver?
+        schema => ['str*', match=>qr/\Av?\d{1,15}(\.\d{1,3}){0,2}\z/], # XXX perlmod_ver?
         req => 1,
         pos => 1,
     },
@@ -25,7 +25,7 @@ our %mod_ver_args = (
 
 our %opt_mod_ver_args = (
     module_version => {
-        schema => ['str*', match=>qr/\Av?\d{1,3}(\.\d{1,3}){0,2}\z/], # XXX perlmod_ver?
+        schema => ['str*', match=>qr/\Av?\d{1,15}(\.\d{1,3}){0,2}\z/], # XXX perlmod_ver?
         default => "0",
         pos => 1,
     },
@@ -33,7 +33,7 @@ our %opt_mod_ver_args = (
 
 our %by_ver_args = (
     by => {
-        schema => ['str*', match=>qr/\Av?\d{1,3}(\.\d{1,3}){0,2}\z/],
+        schema => ['str*', match=>qr/\Av?\d{1,15}(\.\d{1,3}){0,2}\z/],
         req => 1,
         pos => 1,
     },
