@@ -1,3 +1,8 @@
+0.121   2019-07-25  Released-By: PERLANCAR; Urgency: medium
+
+	- Relax regex for module_version a bit, again.
+
+
 0.120   2018-04-03  Released-By: PERLANCAR
 
 	- Relax module_version's regex.
